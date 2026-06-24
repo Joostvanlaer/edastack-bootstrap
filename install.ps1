@@ -83,6 +83,23 @@ if (-not (Have "gh")) {
   Remove-Item $zip, $tmp -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+# 3b. Python (no admin) — only the optional Outlook/dealflow connectors need it, but we install
+#     it now so that path is just as smooth on Windows as on Mac. Skip if Python 3 is present.
+$pyVer = "3.13.5"   # known-good pin; bump when python.org publishes a newer 3.x release
+if (-not (Have "python") -and -not (Have "py")) {
+  Say "Installing Python $pyVer (user-level, no admin)…"
+  $pyArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
+  $pyExe = Join-Path $env:TEMP "python-$pyVer-$pyArch.exe"
+  Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$pyVer/python-$pyVer-$pyArch.exe" -OutFile $pyExe
+  # Quiet PER-USER install: no admin/UAC, adds itself to the user PATH, includes pip + the py launcher.
+  Start-Process -FilePath $pyExe -ArgumentList "/quiet", "InstallAllUsers=0", "PrependPath=1", "Include_pip=1", "Include_launcher=1" -Wait
+  Remove-Item $pyExe -Force -ErrorAction SilentlyContinue
+  # Make this session see it too (the installer only updated the persistent user PATH).
+  $pyTag = "Python" + (($pyVer -split '\.')[0..1] -join '')          # 3.13.5 -> Python313
+  $pyHome = Join-Path $env:LOCALAPPDATA "Programs\Python\$pyTag"
+  if (Test-Path $pyHome) { $env:Path = "$pyHome;$(Join-Path $pyHome 'Scripts');" + $env:Path }
+}
+
 # 4. Persist our tool dirs on the USER PATH for future terminals (no admin — user scope only).
 $want = @($Bin, (Join-Path $GitDir "cmd"), (Join-Path $GitDir "bin"))
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
