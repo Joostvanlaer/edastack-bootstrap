@@ -120,6 +120,12 @@ if (Test-Path $bashExe) {
   $env:CLAUDE_CODE_GIT_BASH_PATH = $bashExe
 }
 
+# From here on we call native tools (gh, git, bash, claude) that legitimately write status and
+# progress to stderr - e.g. gh's "not logged in" status, git clone's "Cloning into...". Under
+# -EAP Stop, Windows PowerShell turns that stderr into a TERMINATING error and aborts the script.
+# Relax to Continue for this native section; the downloads above kept Stop for safety.
+$ErrorActionPreference = "Continue"
+
 # 5. GitHub sign-in - the one interactive step. Skip if already signed in.
 & gh auth status 2>$null
 if ($LASTEXITCODE -ne 0) {
