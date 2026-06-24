@@ -54,8 +54,9 @@ if ! command -v gh >/dev/null 2>&1; then
          | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p' | head -1)"
   [ -n "$ver" ] || { echo "Could not determine the latest gh version — check your connection."; exit 1; }
   tmp="$(mktemp -d)"
-  curl -fsSL "https://github.com/cli/cli/releases/download/v${ver}/gh_${ver}_macOS_${arch}.tar.gz" -o "$tmp/gh.tgz"
-  tar -xzf "$tmp/gh.tgz" -C "$tmp"
+  # macOS release assets ship as .zip (Linux uses .tar.gz); unzip is built in on every Mac.
+  curl -fsSL "https://github.com/cli/cli/releases/download/v${ver}/gh_${ver}_macOS_${arch}.zip" -o "$tmp/gh.zip"
+  unzip -q "$tmp/gh.zip" -d "$tmp"
   cp "$tmp/gh_${ver}_macOS_${arch}/bin/gh" "$BIN/gh"
   rm -rf "$tmp"
 fi
